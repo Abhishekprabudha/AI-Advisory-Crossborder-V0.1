@@ -2,10 +2,10 @@ import streamlit as st
 import json
 import difflib
 
-# Page config
+# Set page config
 st.set_page_config(page_title="ATS Validator", layout="wide")
 
-# ✅ Remove Streamlit's default top padding
+# Remove default top padding
 st.markdown("""
     <style>
         .block-container {
@@ -14,14 +14,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Title
+# Page title
 st.markdown("<h1 style='text-align: center;'>📦 ATS – Cross-Border Tariff Validator</h1>", unsafe_allow_html=True)
 
-# Load fallback HS code data
+# Load HS lookup data
 with open("hs_lookup.json", "r") as f:
     hs_data = json.load(f)
 
-# Match input to product
+# Match product input to HS data
 def find_best_match(user_input):
     products = [item["product"] for item in hs_data]
     matches = difflib.get_close_matches(user_input.lower(), products, n=1, cutoff=0.4)
@@ -31,30 +31,27 @@ def find_best_match(user_input):
                 return item
     return None
 
-# Session state
+# Session states
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 if "result_history" not in st.session_state:
     st.session_state.result_history = []
 
-# Layout: two columns (chat left, result right)
+# Layout: Chat (Left) | Results (Right)
 col1, col2 = st.columns([1, 1])
 
 # === LEFT PANEL ===
 with col1:
     st.markdown("### 🧠 Chat with AI Advisory")
 
-    # Show prior chats in a scrollable container
-    chat_container = st.container(height=220)
+    chat_container = st.container(height=250)
     with chat_container:
         for chat in st.session_state.chat_history:
             st.markdown(f"🧠 **You:** {chat}")
 
-    # Input box
     user_input = st.text_area("Enter product description:", placeholder="e.g., Shipping solar panels from Vietnam to US", height=100)
 
-    # Submit
     if st.button("Submit"):
         if user_input.strip():
             st.session_state.chat_history.append(user_input)
@@ -79,18 +76,20 @@ with col1:
 
 # === RIGHT PANEL ===
 with col2:
+    # ✅ Custom HTML title with tight margins
     st.markdown(
-    "<h3 style='margin-bottom: 0.2rem;'>📊 Validated HS Code & Duty</h3>",
-    unsafe_allow_html=True
-)
+        "<h3 style='margin-top: 0.2rem; margin-bottom: 0.4rem;'>📊 Validated HS Code & Duty</h3>",
+        unsafe_allow_html=True
+    )
 
     result_container = st.container(height=500)
+
     with result_container:
         if not st.session_state.result_history:
             st.info("Results will appear here after you submit your first shipment description.")
         else:
             for res in reversed(st.session_state.result_history):
-                st.markdown("---")
+                st.markdown("<hr style='margin: 0.3rem 0;'>", unsafe_allow_html=True)
                 st.markdown(f"**Query:** {res['query']}")
 
                 if "error" in res:
