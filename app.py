@@ -46,7 +46,7 @@ with col1:
     st.markdown("### 🧠 Chat with AI Advisory")
 
     # Show prior chats in a scrollable container
-    chat_container = st.container(height=250)
+    chat_container = st.container(height=220)
     with chat_container:
         for chat in st.session_state.chat_history:
             st.markdown(f"🧠 **You:** {chat}")
