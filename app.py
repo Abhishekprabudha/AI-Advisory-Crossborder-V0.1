@@ -1,11 +1,10 @@
 import streamlit as st
 import json
-import difflib
 
-# Set page config
-st.set_page_config(page_title="ATS Validator", layout="wide")
+# Page configuration
+st.set_page_config(page_title="UPS-Style ATS Validator", layout="wide")
 
-# Remove default top padding
+# Remove top padding for tighter layout
 st.markdown("""
     <style>
         .block-container {
@@ -14,90 +13,74 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Page title
-st.markdown("<h1 style='text-align: center;'>📦 ATS – Cross-Border Tariff Validator</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>📦 ATS – UPS-Style Tariff Estimator</h1>", unsafe_allow_html=True)
 
-# Load HS lookup data
-with open("hs_lookup.json", "r") as f:
-    hs_data = json.load(f)
+# Load data
+with open("hs_lookup_expanded.json", "r") as f:
+    full_data = json.load(f)
 
-# Match product input to HS data
-def find_best_match(user_input):
-    products = [item["product"] for item in hs_data]
-    matches = difflib.get_close_matches(user_input.lower(), products, n=1, cutoff=0.4)
-    if matches:
-        for item in hs_data:
-            if item["product"] == matches[0]:
-                return item
-    return None
+with open("form_dependencies.json", "r") as f:
+    form_data = json.load(f)
 
-# Session states
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+product_names = form_data["product_names"]
+product_to_countries = form_data["product_to_countries"]
+product_country_to_descriptions = form_data["product_country_to_descriptions"]
 
-if "result_history" not in st.session_state:
-    st.session_state.result_history = []
-
-# Layout: Chat (Left) | Results (Right)
+# Streamlit form-based layout
 col1, col2 = st.columns([1, 1])
 
-# === LEFT PANEL ===
+# === LEFT PANEL: FORM ===
 with col1:
-    st.markdown("### 🧠 Chat with AI Advisory")
+    st.markdown("### 🧾 Shipment Details")
 
-    chat_container = st.container(height=220)
-    with chat_container:
-        for chat in st.session_state.chat_history:
-            st.markdown(f"🧠 **You:** {chat}")
+    selected_product = st.selectbox("1. Product Name", product_names)
 
-    user_input = st.text_area("Enter product description:", placeholder="e.g., Shipping solar panels from Vietnam to US", height=100)
+    countries = product_to_countries.get(selected_product, [])
+    selected_country = st.selectbox("2. Destination Country", countries)
 
-    if st.button("Submit"):
-        if user_input.strip():
-            st.session_state.chat_history.append(user_input)
-            result = find_best_match(user_input)
+    description_key = f"{selected_product}|{selected_country}"
+    descriptions = product_country_to_descriptions.get(description_key, [])
+    selected_description = st.selectbox("3. Product Description", descriptions)
 
-            if result:
-                invoice_value = 1000
-                estimated_duty = (result["tariff_percent"] / 100.0) * invoice_value
-                st.session_state.result_history.append({
-                    "query": user_input,
-                    "hs_code": result["hs_code"],
-                    "description": result["description"],
-                    "product": result["product"],
-                    "tariff_percent": result["tariff_percent"],
-                    "estimated_duty": estimated_duty
-                })
-            else:
-                st.session_state.result_history.append({
-                    "query": user_input,
-                    "error": "No matching HS code found"
-                })
+    invoice_value = st.number_input("4. Invoice Value (USD)", min_value=0.0, step=10.0, value=1000.0)
 
-# === RIGHT PANEL ===
+    submitted = st.button("Calculate Duty")
+
+# === RIGHT PANEL: RESULTS ===
 with col2:
-    # ✅ Custom HTML title with tight margins
     st.markdown(
-        "<h3 style='margin-top: 0.2rem; margin-bottom: 0.4rem;'>📊 Validated HS Code & Duty</h3>",
+        "<h3 style='margin-top: 0.2rem; margin-bottom: 0.4rem;'>📊 Duty Calculation</h3>",
         unsafe_allow_html=True
     )
 
     result_container = st.container(height=500)
 
     with result_container:
-        if not st.session_state.result_history:
-            st.info("Results will appear here after you submit your first shipment description.")
-        else:
-            for res in reversed(st.session_state.result_history):
-                #st.markdown("<hr style='margin: 0.3rem 0;'>", unsafe_allow_html=True)
-                st.markdown(f"**Query:** {res['query']}")
+        if submitted:
+            # Find matching record
+            match = next(
+                (
+                    item for item in full_data
+                    if item["product"] == selected_product and
+                    item["destination"] == selected_country and
+                    item["description"] == selected_description
+                ),
+                None
+            )
 
-                if "error" in res:
-                    st.error(res["error"])
-                else:
-                    st.success("✅ HS Match Found")
-                    st.markdown(f"**HS Code:** `{res['hs_code']}`")
-                    st.markdown(f"**Product:** {res['product']}")
-                    st.markdown(f"**Description:** {res['description']}")
-                    st.markdown(f"**Tariff %:** `{res['tariff_percent']}%`")
-                    st.markdown(f"**Duty on $1000 Invoice:** `${res['estimated_duty']:.2f}`")
+            if match:
+                duty_percent = match["tariff_percent"]
+                estimated_duty = (duty_percent / 100.0) * invoice_value
+
+                st.success("✅ Match found!")
+                st.markdown(f"**HS Code:** `{match['hs_code']}`")
+                st.markdown(f"**Product:** {match['product']}")
+                st.markdown(f"**Description:** {match['description']}")
+                st.markdown(f"**Destination:** {match['destination']}")
+                st.markdown(f"**Tariff Rate:** `{duty_percent}%`")
+                st.markdown(f"**Invoice Value:** `${invoice_value:,.2f}`")
+                st.markdown(f"**Estimated Duty:** `${estimated_duty:,.2f}`")
+            else:
+                st.error("❌ No matching record found. Please check your selection.")
+        else:
+            st.info("Fill the form and click 'Calculate Duty' to see results.")
