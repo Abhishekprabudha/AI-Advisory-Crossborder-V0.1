@@ -1,12 +1,11 @@
 import streamlit as st
-import requests
 import json
-from rapidfuzz import process
+import difflib
 
-# --- Page Config ---
+# Set page config
 st.set_page_config(page_title="ATS Validator", layout="wide")
 
-# --- Remove Top Padding ---
+# Remove default top padding
 st.markdown("""
     <style>
         .block-container {
@@ -15,150 +14,90 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Title ---
+# Page title
 st.markdown("<h1 style='text-align: center;'>📦 ATS – Cross-Border Tariff Validator</h1>", unsafe_allow_html=True)
 
-# --- API KEY for Broker Genius ---
-API_KEY = "8c613a45-7d06-4c4a-9761-d67706f2372e"  # Replace with your actual API key
+# Load HS lookup data
+with open("hs_lookup.json", "r") as f:
+    hs_data = json.load(f)
 
-# --- Load Fallback JSON (hs_lookup.json) ---
-@st.cache_data
-def load_fallback_json():
-    with open("hs_lookup.json", "r") as f:
-        return json.load(f)
-
-fallback_data = load_fallback_json()
-
-# --- Fuzzy Search from JSON ---
-def fuzzy_match(query):
-    choices = [item["description"] for item in fallback_data]
-    best, score, idx = process.extractOne(query, choices)
-    match = fallback_data[idx]
-    return {
-        result = {
-    "hs_code": match.get("code") or match.get("hs_code", "N/A"),
-    "product": match.get("product", "Unknown"),
-    "description": match.get("description", "No description"),
-    "tariff": match.get("tariff", 0.0),
-}
-
-        "description": match["description"],
-        "tariff_percent": match.get("duty", 0.0)
-    }
-
-# --- Primary API Call ---
-def query_api(product_input, country_code):
-    url = "https://api.brokergenius.ai/classify"
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "description": product_input,
-        "country": country_code.upper()
-    }
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=5)
-        if response.status_code == 200:
-            result = response.json()
-            return {
-                "hs_code": result["code"],
-                "description": result["description"],
-                "tariff_percent": result.get("duty", 0.0)
-            }
-    except:
-        pass
+# Match product input to HS data
+def find_best_match(user_input):
+    products = [item["product"] for item in hs_data]
+    matches = difflib.get_close_matches(user_input.lower(), products, n=1, cutoff=0.4)
+    if matches:
+        for item in hs_data:
+            if item["product"] == matches[0]:
+                return item
     return None
 
-# --- Country Map for ISO codes ---
-country_map = {
-    "United States": "US", "India": "IN", "Germany": "DE",
-    "Singapore": "SG", "Vietnam": "VN", "UAE": "AE"
-}
+# Session states
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
-# --- Initialize Session State ---
-if "step" not in st.session_state:
-    st.session_state.step = 1
-if "chat" not in st.session_state:
-    st.session_state.chat = []
-if "partial" not in st.session_state:
-    st.session_state.partial = {}
-if "results" not in st.session_state:
-    st.session_state.results = []
+if "result_history" not in st.session_state:
+    st.session_state.result_history = []
 
-# --- Layout ---
+# Layout: Chat (Left) | Results (Right)
 col1, col2 = st.columns([1, 1])
 
 # === LEFT PANEL ===
 with col1:
-    st.markdown("### 💬 Chat")
-    for msg in st.session_state.chat:
-        st.markdown(msg)
+    st.markdown("### 🧠 Chat with AI Advisory")
 
-    # Step 1: Ask for product
-    if st.session_state.step == 1:
-        product_input = st.text_input("What are you shipping?")
-        if product_input:
-            st.session_state.partial["product"] = product_input
-            st.session_state.chat.append(f"**You:** {product_input}")
-            st.session_state.chat.append("**Bot:** Please select the destination country.")
-            st.session_state.step = 2
-            st.rerun()
+    chat_container = st.container(height=250)
+    with chat_container:
+        for chat in st.session_state.chat_history:
+            st.markdown(f"🧠 **You:** {chat}")
 
-    # Step 2: Ask for destination country
-    elif st.session_state.step == 2:
-        dest_country = st.selectbox("Destination Country", list(country_map.keys()))
-        if dest_country:
-            st.session_state.partial["country"] = dest_country
-            st.session_state.chat.append(f"**You:** {dest_country}")
-            st.session_state.chat.append("**Bot:** What is the invoice value in USD?")
-            st.session_state.step = 3
-            st.rerun()
+    user_input = st.text_area("Enter product description:", placeholder="e.g., Shipping solar panels from Vietnam to US", height=100)
 
-    # Step 3: Ask for invoice value
-    elif st.session_state.step == 3:
-        invoice_value = st.number_input("Invoice Value (USD)", min_value=1.0, value=1000.0, step=50.0)
-        submit = st.button("Submit")
-        if submit:
-            st.session_state.partial["invoice"] = invoice_value
-            st.session_state.chat.append(f"**You:** ${invoice_value:,.2f}")
+    if st.button("Submit"):
+        if user_input.strip():
+            st.session_state.chat_history.append(user_input)
+            result = find_best_match(user_input)
 
-            # Primary API
-            query = st.session_state.partial["product"]
-            iso = country_map[st.session_state.partial["country"]]
-            result = query_api(query, iso)
-
-            # Fallback if API fails
-            if not result:
-                result = fuzzy_match(query)
-
-            result["invoice"] = invoice_value
-            result["country"] = st.session_state.partial["country"]
-            result["query"] = query
-            result["estimated_duty"] = (result["tariff_percent"] / 100.0) * invoice_value
-            st.session_state.results.append(result)
-            st.session_state.chat.append("**Bot:** Classification complete. Check the right panel.")
-
-            # Reset for next interaction
-            st.session_state.partial = {}
-            st.session_state.step = 1
-            st.rerun()
+            if result:
+                invoice_value = 1000
+                estimated_duty = (result["tariff_percent"] / 100.0) * invoice_value
+                st.session_state.result_history.append({
+                    "query": user_input,
+                    "hs_code": result["hs_code"],
+                    "description": result["description"],
+                    "product": result["product"],
+                    "tariff_percent": result["tariff_percent"],
+                    "estimated_duty": estimated_duty
+                })
+            else:
+                st.session_state.result_history.append({
+                    "query": user_input,
+                    "error": "No matching HS code found"
+                })
 
 # === RIGHT PANEL ===
 with col2:
-    st.markdown("""
-        <h3 style='margin-top: 0.2rem; margin-bottom: 0.4rem;'>📊 Results</h3>
-    """, unsafe_allow_html=True)
-    if not st.session_state.results:
-        st.info("Validated results will appear here.")
-    else:
-        for res in reversed(st.session_state.results):
-            st.markdown(f"**Product:** {res['query']}")
-            st.success("✅ HS Match Found")
-            st.markdown(f"**HS Code:** `{res['hs_code']}`")
-            st.markdown(f"**Description:** {res['description']}")
-            st.markdown(f"**Destination Country:** {res['country']}")
-            st.markdown(f"**Tariff %:** `{res['tariff_percent']}%`")
-            st.markdown(f"**Invoice Value:** `${res['invoice']:,.2f}`")
-            st.markdown(f"**Estimated Duty:** `${res['estimated_duty']:,.2f}`")
-            st.markdown("---")
+    # ✅ Custom HTML title with tight margins
+    st.markdown(
+        "<h3 style='margin-top: 0.2rem; margin-bottom: 0.4rem;'>📊 Validated HS Code & Duty</h3>",
+        unsafe_allow_html=True
+    )
+
+    result_container = st.container(height=500)
+
+    with result_container:
+        if not st.session_state.result_history:
+            st.info("Results will appear here after you submit your first shipment description.")
+        else:
+            for res in reversed(st.session_state.result_history):
+                st.markdown("<hr style='margin: 0.3rem 0;'>", unsafe_allow_html=True)
+                st.markdown(f"**Query:** {res['query']}")
+
+                if "error" in res:
+                    st.error(res["error"])
+                else:
+                    st.success("✅ HS Match Found")
+                    st.markdown(f"**HS Code:** `{res['hs_code']}`")
+                    st.markdown(f"**Product:** {res['product']}")
+                    st.markdown(f"**Description:** {res['description']}")
+                    st.markdown(f"**Tariff %:** `{res['tariff_percent']}%`")
+                    st.markdown(f"**Duty on $1000 Invoice:** `${res['estimated_duty']:.2f}`")
