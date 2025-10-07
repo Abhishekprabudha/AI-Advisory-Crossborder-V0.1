@@ -3,7 +3,7 @@ import json
 import difflib
 
 # Page setup
-st.set_page_config(page_title="ATS Chat Validator", layout="wide")
+st.set_page_config(page_title="AI Advisory", layout="wide")
 
 st.title("🤖 AI Advisory – Harmonized Code & Duty Validator")
 
