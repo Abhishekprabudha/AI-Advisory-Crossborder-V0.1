@@ -34,7 +34,7 @@ with col1:
     st.markdown("### 🧠 Chat with AI Advisory")
 
     # Chat history display
-    chat_container = st.container(height=200)
+    chat_container = st.container(height=150)
     with chat_container:
         for chat in st.session_state.chat_history:
             st.markdown(f"📝 **You:** {chat}")
