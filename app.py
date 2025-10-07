@@ -35,7 +35,13 @@ def fuzzy_match(query):
     best, score, idx = process.extractOne(query, choices)
     match = fallback_data[idx]
     return {
-        "hs_code": match["code"],
+        result = {
+    "hs_code": match.get("code") or match.get("hs_code", "N/A"),
+    "product": match.get("product", "Unknown"),
+    "description": match.get("description", "No description"),
+    "tariff": match.get("tariff", 0.0),
+}
+
         "description": match["description"],
         "tariff_percent": match.get("duty", 0.0)
     }
