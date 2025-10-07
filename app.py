@@ -45,7 +45,7 @@ col1, col2 = st.columns([1, 1])
 with col1:
     st.markdown("### 🧠 Chat with AI Advisory")
 
-    chat_container = st.container(height=250)
+    chat_container = st.container(height=200)
     with chat_container:
         for chat in st.session_state.chat_history:
             st.markdown(f"🧠 **You:** {chat}")
