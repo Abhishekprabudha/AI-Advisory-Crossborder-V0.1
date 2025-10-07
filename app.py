@@ -10,7 +10,6 @@ st.markdown("<h1 style='text-align: center;'>📦 AI Advisory - Harmonized Code 
 with open("hs_lookup.json", "r") as f:
     hs_data = json.load(f)
 
-# Match input text to known product descriptions
 def find_best_match(user_input):
     products = [item["product"] for item in hs_data]
     matches = difflib.get_close_matches(user_input.lower(), products, n=1, cutoff=0.4)
@@ -20,59 +19,59 @@ def find_best_match(user_input):
                 return item
     return None
 
-# Session state to store chat + result history
+# Session state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 if "result_history" not in st.session_state:
     st.session_state.result_history = []
 
-# Layout: two scrollable panels
+# Layout: two columns
 col1, col2 = st.columns([1, 1])
 
-# === LEFT PANEL: Chat ===
+# === LEFT PANEL: Text Area for Input ===
 with col1:
     st.markdown("### 🧠 Chat with AI Advisory")
 
-    chat_container = st.container(height=500)
+    # Chat history display
+    chat_container = st.container(height=400)
     with chat_container:
         for chat in st.session_state.chat_history:
-            st.chat_message("user").markdown(chat)
+            st.markdown(f"📝 **You:** {chat}")
 
-    user_input = st.chat_input("Type a shipment description like: 'Shipping batteries from Vietnam to US'")
+    # Text area input instead of single line
+    user_input = st.text_area("Enter product description:", placeholder="e.g., Shipping solar panels from Vietnam to US", height=100)
 
-    if user_input:
-        st.session_state.chat_history.append(user_input)
-        result = find_best_match(user_input)
+    if st.button("Submit"):
+        if user_input.strip():
+            st.session_state.chat_history.append(user_input)
+            result = find_best_match(user_input)
 
-        if result:
-            invoice_value = 1000  # fixed for now
-            estimated_duty = (result["tariff_percent"] / 100.0) * invoice_value
+            if result:
+                invoice_value = 1000
+                estimated_duty = (result["tariff_percent"] / 100.0) * invoice_value
+                st.session_state.result_history.append({
+                    "query": user_input,
+                    "hs_code": result["hs_code"],
+                    "description": result["description"],
+                    "product": result["product"],
+                    "tariff_percent": result["tariff_percent"],
+                    "estimated_duty": estimated_duty
+                })
+            else:
+                st.session_state.result_history.append({
+                    "query": user_input,
+                    "error": "No matching HS code found"
+                })
 
-            output = {
-                "query": user_input,
-                "hs_code": result["hs_code"],
-                "description": result["description"],
-                "product": result["product"],
-                "tariff_percent": result["tariff_percent"],
-                "estimated_duty": estimated_duty
-            }
-
-            st.session_state.result_history.append(output)
-        else:
-            st.session_state.result_history.append({
-                "query": user_input,
-                "error": "No matching HS code found"
-            })
-
-# === RIGHT PANEL: Results ===
+# === RIGHT PANEL: Result Stack ===
 with col2:
-    st.markdown("### 📊 Validated HS Code and Duty")
+    st.markdown("### 📊 Validated HS Code & Duty")
 
     result_container = st.container(height=500)
     with result_container:
         if not st.session_state.result_history:
-            st.info("📝 Results will appear here after you enter your first query.")
+            st.info("Results will appear here after you submit your first shipment description.")
         else:
             for res in reversed(st.session_state.result_history):
                 st.markdown("---")
