@@ -107,7 +107,7 @@ with col1:
             st.session_state.chat.append(f"**You:** {dest_country}")
             st.session_state.chat.append("**Bot:** What is the invoice value in USD?")
             st.session_state.step = 3
-            st.experimental_rerun()
+            st.rerun()
 
     # Step 3: Ask for invoice value
     elif st.session_state.step == 3:
@@ -136,7 +136,7 @@ with col1:
             # Reset for next interaction
             st.session_state.partial = {}
             st.session_state.step = 1
-            st.experimental_rerun()
+            st.rerun()
 
 # === RIGHT PANEL ===
 with col2:
