@@ -2,18 +2,16 @@ import streamlit as st
 import json
 import difflib
 
-# Set page layout
-st.set_page_config(page_title="ATS - Tariff Validator", layout="wide")
+# Page setup
+st.set_page_config(page_title="ATS Chat Validator", layout="wide")
 
-st.title("📦 AI Advisory – Harmonized Code & Duty Validator")
+st.title("🤖 ATS – Chat-Style Tariff Validator")
 
-st.markdown("Type a product you're shipping and select source & destination countries. We'll find the right HS Code and estimate the duty.")
-
-# --- Load fallback HS code data ---
+# Load fallback HS code data
 with open("hs_lookup.json", "r") as f:
     hs_data = json.load(f)
 
-# --- Helper to match product description ---
+# Product matching function
 def find_best_match(user_input):
     products = [item["product"] for item in hs_data]
     matches = difflib.get_close_matches(user_input.lower(), products, n=1, cutoff=0.4)
@@ -23,40 +21,43 @@ def find_best_match(user_input):
                 return item
     return None
 
-# --- UI Layout ---
-col1, col2 = st.columns(2)
+# Chat history (persists across reruns)
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
+# 2-column layout: Chat (left), Result (right)
+col1, col2 = st.columns([1, 1])
+
+# Left Panel: Chat interface
 with col1:
-    product_input = st.text_input("What are you shipping?", placeholder="e.g., lithium ion batteries")
+    st.subheader("💬 Ask about a shipment")
 
-    origin_country = st.selectbox("Country of Origin", ["Vietnam", "India", "Thailand", "China", "Germany"])
-    dest_country = st.selectbox("Destination Country", ["United States", "Singapore", "Japan", "UAE", "Australia"])
-    invoice_value = st.number_input("Invoice Value ($)", min_value=100.0, step=50.0, value=1000.0)
+    for msg in st.session_state.chat_history:
+        st.chat_message("user").write(msg)
 
-    if st.button("Validate & Estimate Duty"):
-        if product_input:
-            result = find_best_match(product_input)
-            if result:
-                st.success("✅ Match found! Here are the details:")
+    user_input = st.chat_input("Type your shipment description here...")
 
-                colA, colB = st.columns(2)
-                with colA:
-                    st.metric("HS Code", result["hs_code"])
-                    st.write(f"**Description:** {result['description']}")
-                    st.write(f"**Product Match:** `{result['product']}`")
+    if user_input:
+        st.session_state.chat_history.append(user_input)
 
-                with colB:
-                    st.metric("Estimated Duty %", f"{result['tariff_percent']}%")
-                    estimated_duty = (result["tariff_percent"] / 100.0) * invoice_value
-                    st.metric("Estimated Duty ($)", f"${estimated_duty:,.2f}")
-
-                st.markdown("---")
-                st.info("📎 You can now download this information for your shipping declaration.")
-            else:
-                st.error("❌ Sorry, we couldn't find a match. Try a simpler product name.")
-        else:
-            st.warning("Please enter a product name to search.")
-
+# Right Panel: Output result
 with col2:
-    st.image("https://cdn-icons-png.flaticon.com/512/679/679922.png", width=300)
-    st.markdown("###### Powered by Streamlit • Fallback mode • No API calls")
+    st.subheader("📊 Validation Results")
+
+    if user_input:
+        result = find_best_match(user_input)
+
+        if result:
+            st.success("✅ HS Code Match Found")
+            st.metric("HS Code", result["hs_code"])
+            st.write(f"**Product Match:** {result['product']}")
+            st.write(f"**Description:** {result['description']}")
+            st.metric("Estimated Duty %", f"{result['tariff_percent']}%")
+
+            invoice_value = 1000  # Assume fixed $1000 for now
+            estimated_duty = (result["tariff_percent"] / 100.0) * invoice_value
+            st.metric("Duty on $1000 Invoice", f"${estimated_duty:,.2f}")
+        else:
+            st.error("❌ No matching HS code found. Try using a more common product name.")
+    else:
+        st.info("Start by typing a sentence like: `Shipping solar panels from Vietnam to US`")
