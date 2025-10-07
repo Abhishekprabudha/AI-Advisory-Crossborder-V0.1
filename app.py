@@ -97,7 +97,7 @@ with col1:
             st.session_state.chat.append(f"**You:** {product_input}")
             st.session_state.chat.append("**Bot:** Please select the destination country.")
             st.session_state.step = 2
-            st.experimental_rerun()
+            st.rerun()
 
     # Step 2: Ask for destination country
     elif st.session_state.step == 2:
