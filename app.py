@@ -79,7 +79,11 @@ with col1:
 
 # === RIGHT PANEL ===
 with col2:
-    st.markdown("### 📊 Validated HS Code & Duty")
+    st.markdown(
+    "<h3 style='margin-bottom: 0.2rem;'>📊 Validated HS Code & Duty</h3>",
+    unsafe_allow_html=True
+)
+
     result_container = st.container(height=500)
     with result_container:
         if not st.session_state.result_history:
