@@ -32,7 +32,7 @@ col1, col2 = st.columns([1, 1])
 
 # === LEFT PANEL: Chat ===
 with col1:
-    st.markdown("### 🧠 Chat with ATS System")
+    st.markdown("### 🧠 Chat with AI Advisory")
 
     chat_container = st.container(height=500)
     with chat_container:
@@ -67,7 +67,7 @@ with col1:
 
 # === RIGHT PANEL: Results ===
 with col2:
-    st.markdown("### 📊 Results Panel")
+    st.markdown("### 📊 Validated HS Code and Duty")
 
     result_container = st.container(height=500)
     with result_container:
