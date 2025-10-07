@@ -2,7 +2,7 @@ import streamlit as st
 import json
 
 # Page configuration
-st.set_page_config(page_title="UPS-Style ATS Validator", layout="wide")
+st.set_page_config(page_title="AI Advisory", layout="wide")
 
 # Remove top padding for tighter layout
 st.markdown("""
@@ -13,7 +13,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center;'>📦 ATS – UPS-Style Tariff Estimator</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>📦 AI Advisory - Harmonized Code & Duty Validator</h1>", unsafe_allow_html=True)
 
 # Load data
 with open("hs_lookup_expanded.json", "r") as f:
@@ -31,7 +31,7 @@ col1, col2 = st.columns([1, 1])
 
 # === LEFT PANEL: FORM ===
 with col1:
-    st.markdown("### 🧾 Shipment Details")
+    st.markdown("### 🧾 UPS Shipment Details Form")
 
     selected_product = st.selectbox("1. Product Name", product_names)
 
