@@ -5,7 +5,7 @@ import difflib
 # Page setup
 st.set_page_config(page_title="ATS Chat Validator", layout="wide")
 
-st.title("🤖 ATS – Chat-Style Tariff Validator")
+st.title("🤖 AI Advisory – Harmonized Code & Duty Validator")
 
 # Load fallback HS code data
 with open("hs_lookup.json", "r") as f:
