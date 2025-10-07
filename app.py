@@ -2,14 +2,26 @@ import streamlit as st
 import json
 import difflib
 
-st.set_page_config(page_title="AI Advisory", layout="wide")
+# Page config
+st.set_page_config(page_title="ATS Validator", layout="wide")
 
-st.markdown("<h1 style='text-align: center;'>📦 AI Advisory - Harmonized Code & Duty Validator</h1>", unsafe_allow_html=True)
+# ✅ Remove Streamlit's default top padding
+st.markdown("""
+    <style>
+        .block-container {
+            padding-top: 1rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Title
+st.markdown("<h1 style='text-align: center;'>📦 ATS – Cross-Border Tariff Validator</h1>", unsafe_allow_html=True)
 
 # Load fallback HS code data
 with open("hs_lookup.json", "r") as f:
     hs_data = json.load(f)
 
+# Match input to product
 def find_best_match(user_input):
     products = [item["product"] for item in hs_data]
     matches = difflib.get_close_matches(user_input.lower(), products, n=1, cutoff=0.4)
@@ -26,22 +38,23 @@ if "chat_history" not in st.session_state:
 if "result_history" not in st.session_state:
     st.session_state.result_history = []
 
-# Layout: two columns
+# Layout: two columns (chat left, result right)
 col1, col2 = st.columns([1, 1])
 
-# === LEFT PANEL: Text Area for Input ===
+# === LEFT PANEL ===
 with col1:
     st.markdown("### 🧠 Chat with AI Advisory")
 
-    # Chat history display
-    chat_container = st.container(height=150)
+    # Show prior chats in a scrollable container
+    chat_container = st.container(height=250)
     with chat_container:
         for chat in st.session_state.chat_history:
-            st.markdown(f"📝 **You:** {chat}")
+            st.markdown(f"🧠 **You:** {chat}")
 
-    # Text area input instead of single line
+    # Input box
     user_input = st.text_area("Enter product description:", placeholder="e.g., Shipping solar panels from Vietnam to US", height=100)
 
+    # Submit
     if st.button("Submit"):
         if user_input.strip():
             st.session_state.chat_history.append(user_input)
@@ -64,7 +77,7 @@ with col1:
                     "error": "No matching HS code found"
                 })
 
-# === RIGHT PANEL: Result Stack ===
+# === RIGHT PANEL ===
 with col2:
     st.markdown("### 📊 Validated HS Code & Duty")
 
