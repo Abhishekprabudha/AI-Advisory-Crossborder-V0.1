@@ -5,7 +5,7 @@ import difflib
 # Set page layout
 st.set_page_config(page_title="ATS - Tariff Validator", layout="wide")
 
-st.title("📦 ATS Prototype – Harmonized Code & Duty Validator")
+st.title("📦 AI Advisory – Harmonized Code & Duty Validator")
 
 st.markdown("Type a product you're shipping and select source & destination countries. We'll find the right HS Code and estimate the duty.")
 
