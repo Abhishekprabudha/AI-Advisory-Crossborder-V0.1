@@ -34,7 +34,7 @@ with col1:
     st.markdown("### 🧠 Chat with AI Advisory")
 
     # Chat history display
-    chat_container = st.container(height=230)
+    chat_container = st.container(height=200)
     with chat_container:
         for chat in st.session_state.chat_history:
             st.markdown(f"📝 **You:** {chat}")
@@ -68,7 +68,7 @@ with col1:
 with col2:
     st.markdown("### 📊 Validated HS Code & Duty")
 
-    result_container = st.container(height=250)
+    result_container = st.container(height=500)
     with result_container:
         if not st.session_state.result_history:
             st.info("Results will appear here after you submit your first shipment description.")
