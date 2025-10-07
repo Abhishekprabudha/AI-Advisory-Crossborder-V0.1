@@ -89,7 +89,7 @@ with col2:
             st.info("Results will appear here after you submit your first shipment description.")
         else:
             for res in reversed(st.session_state.result_history):
-                st.markdown("<hr style='margin: 0.3rem 0;'>", unsafe_allow_html=True)
+                # st.markdown("<hr style='margin: 0.3rem 0;'>", unsafe_allow_html=True)
                 st.markdown(f"**Query:** {res['query']}")
 
                 if "error" in res:
