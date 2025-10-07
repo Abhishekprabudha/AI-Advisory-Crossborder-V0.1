@@ -80,7 +80,6 @@ with col1:
 # === RIGHT PANEL ===
 with col2:
     st.markdown("### 📊 Validated HS Code & Duty")
-
     result_container = st.container(height=500)
     with result_container:
         if not st.session_state.result_history:
